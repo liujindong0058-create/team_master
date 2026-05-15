@@ -1,0 +1,148 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 1200px;
+  min-height: 600px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  margin: 24px;
+}
+
+/* 左侧轮播区域 */
+.login-left {
+  background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  position: relative;
+}
+
+.login-carousel-wrapper {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 48px;
+}
+
+.login-logo {
+  width: 48px;
+  height: 48px;
+  background: #fff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.login-carousel .carousel-item {
+  padding: 24px;
+  text-align: center;
+}
+
+.login-carousel .carousel-icon {
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+/* 轮播指示器样式 */
+.login-carousel :global(.slick-dots li button) {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+.login-carousel :global(.slick-dots li.slick-active button) {
+  background: #fff !important;
+}
+
+/* 右侧登录区域 */
+.login-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: #fff;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  box-shadow: none;
+}
+
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  background: #f6ffed;
+  border-radius: 12px;
+  border: 1px dashed #b7eb8f;
+}
+
+.qr-code-wrapper {
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.divider span {
+  padding: 0 16px;
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .login-container {
+    margin: 0;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  .login-right {
+    padding: 24px;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+}
