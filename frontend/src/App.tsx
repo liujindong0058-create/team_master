@@ -5,7 +5,6 @@ import zhCN from 'antd/locale/zh_CN';
 import { useAuthStore } from '@/store';
 import MainLayout from '@/components/Layout';
 import LoginPage from '@/pages/Login';
-import MembersPage from '@/pages/Members';
 import ProfilePage from '@/pages/Profile';
 
 // 路由守卫组件
@@ -54,19 +53,12 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// 应用主布局（三栏布局）
+// 应用主布局（一体化布局）
 const AppLayout: React.FC = () => {
   return (
     <MainLayout>
-      <div style={{ display: 'flex', height: 'calc(100vh - 64px)' }}>
-        {/* 成员列表 */}
-        <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #f0f0f0' }}>
-          <MembersPage />
-        </div>
-        {/* 成员详情 */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <ProfilePage />
-        </div>
+      <div style={{ height: 'calc(100vh - 64px)' }}>
+        <ProfilePage />
       </div>
     </MainLayout>
   );

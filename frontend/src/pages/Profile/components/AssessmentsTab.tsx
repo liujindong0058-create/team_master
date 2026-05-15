@@ -14,19 +14,70 @@ import {
   Space,
   Tag,
   Progress,
+  Radio,
+  DatePicker,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   CheckCircleOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useProfileStore, useMemberStore } from '@/store';
 import { Assessment } from '@/types';
 import { formatDate } from '@/utils';
 
 const { Text } = Typography;
 const { TextArea } = Input;
+
+// 评估周期类型
+type PeriodType = 'month' | 'quarter' | 'halfYear' | 'year';
+
+const periodOptions: { label: string; value: PeriodType }[] = [
+  { label: '月度', value: 'month' },
+  { label: '季度', value: 'quarter' },
+  { label: '半年', value: 'halfYear' },
+  { label: '年度', value: 'year' },
+];
+
+// 根据周期类型和日期计算起止日期
+const getPeriodRange = (periodType: PeriodType, date: dayjs.Dayjs) => {
+  let start: dayjs.Dayjs;
+  let end: dayjs.Dayjs;
+
+  switch (periodType) {
+    case 'month':
+      start = date.startOf('month');
+      end = date.endOf('month');
+      break;
+    case 'quarter': {
+      const quarterMonth = Math.floor(date.month() / 3) * 3;
+      start = date.month(quarterMonth).startOf('month');
+      end = date.month(quarterMonth + 2).endOf('month');
+      break;
+    }
+    case 'halfYear': {
+      const halfYearMonth = date.month() < 6 ? 0 : 6;
+      start = date.month(halfYearMonth).startOf('month');
+      end = date.month(halfYearMonth + 5).endOf('month');
+      break;
+    }
+    case 'year':
+      start = date.startOf('year');
+      end = date.endOf('year');
+      break;
+  }
+
+  return { start, end };
+};
+
+// 生成 period 字符串
+const buildPeriodString = (periodType: PeriodType, date: dayjs.Dayjs): string => {
+  const { start, end } = getPeriodRange(periodType, date);
+  return `${start.format('YYYY.MM.DD')} - ${end.format('YYYY.MM.DD')}`;
+};
 
 const AssessmentsTab: React.FC = () => {
   const { selectedMember } = useMemberStore();
@@ -45,6 +96,14 @@ const AssessmentsTab: React.FC = () => {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
+  // 创建表单中的周期类型和日期
+  const [createPeriodType, setCreatePeriodType] = useState<PeriodType>('month');
+  const [createDate, setCreateDate] = useState<dayjs.Dayjs>(dayjs());
+
+  // 编辑表单中的周期类型和日期
+  const [editPeriodType, setEditPeriodType] = useState<PeriodType>('month');
+  const [editDate, setEditDate] = useState<dayjs.Dayjs>(dayjs());
+
   // 加载评估列表
   useEffect(() => {
     if (selectedMember) {
@@ -55,9 +114,8 @@ const AssessmentsTab: React.FC = () => {
   // 打开创建弹窗
   const handleCreate = () => {
     form.resetFields();
-    form.setFieldsValue({
-      period: formatDate(new Date(), 'YYYY-MM'),
-    });
+    setCreatePeriodType('month');
+    setCreateDate(dayjs());
     setIsModalOpen(true);
   };
 
@@ -66,7 +124,11 @@ const AssessmentsTab: React.FC = () => {
     if (!selectedMember) return;
     try {
       const values = await form.validateFields();
-      await createAssessment(selectedMember.id, values);
+      const periodStr = buildPeriodString(createPeriodType, createDate);
+      await createAssessment(selectedMember.id, {
+        ...values,
+        period: periodStr,
+      });
       setIsModalOpen(false);
     } catch {
       // 表单验证失败
@@ -77,7 +139,6 @@ const AssessmentsTab: React.FC = () => {
   const handleEdit = (assessment: Assessment) => {
     setEditingAssessment(assessment);
     editForm.setFieldsValue({
-      period: assessment.period,
       workQuality: assessment.workQuality,
       efficiency: assessment.efficiency,
       communication: assessment.communication,
@@ -85,6 +146,9 @@ const AssessmentsTab: React.FC = () => {
       teamwork: assessment.teamwork,
       summary: assessment.summary,
     });
+    // 尝试解析已有的 period
+    setEditPeriodType('month');
+    setEditDate(dayjs());
     setIsEditModalOpen(true);
   };
 
@@ -93,7 +157,11 @@ const AssessmentsTab: React.FC = () => {
     if (!editingAssessment) return;
     try {
       const values = await editForm.validateFields();
-      await updateAssessment(editingAssessment.id, values);
+      const periodStr = buildPeriodString(editPeriodType, editDate);
+      await updateAssessment(editingAssessment.id, {
+        ...values,
+        period: periodStr,
+      });
       setIsEditModalOpen(false);
       setEditingAssessment(null);
     } catch {
@@ -112,19 +180,18 @@ const AssessmentsTab: React.FC = () => {
 
   // 计算总分
   const calculateTotalScore = (assessment: Assessment) => {
-    const total =
+    return (
       assessment.workQuality +
       assessment.efficiency +
       assessment.communication +
       assessment.innovation +
-      assessment.teamwork;
-    return total;
+      assessment.teamwork
+    );
   };
 
   // 计算平均分
   const calculateAverageScore = (assessment: Assessment) => {
-    const total = calculateTotalScore(assessment);
-    return (total / 5).toFixed(1);
+    return (calculateTotalScore(assessment) / 5).toFixed(1);
   };
 
   // 渲染评分项
@@ -138,23 +205,79 @@ const AssessmentsTab: React.FC = () => {
     </div>
   );
 
+  // 渲染周期选择器（创建和编辑共用逻辑）
+  const renderPeriodSelector = (
+    periodType: PeriodType,
+    date: dayjs.Dayjs,
+    onTypeChange: (val: PeriodType) => void,
+    onDateChange: (val: dayjs.Dayjs) => void,
+  ) => {
+    const { start, end } = getPeriodRange(periodType, date);
+    return (
+      <div>
+        <div style={{ marginBottom: 12 }}>
+          <Text strong style={{ display: 'block', marginBottom: 8 }}>评估周期类型</Text>
+          <Radio.Group
+            value={periodType}
+            onChange={(e) => onTypeChange(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+            size="middle"
+          >
+            {periodOptions.map((opt) => (
+              <Radio.Button key={opt.value} value={opt.value}>
+                {opt.label}
+              </Radio.Button>
+            ))}
+          </Radio.Group>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <Text strong style={{ display: 'block', marginBottom: 8 }}>选择日期</Text>
+          <DatePicker
+            value={date}
+            onChange={(val) => val && onDateChange(val)}
+            picker="month"
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div
+          style={{
+            padding: '10px 14px',
+            backgroundColor: '#f6ffed',
+            border: '1px solid #b7eb8f',
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <CalendarOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+          <div>
+            <Text type="secondary" style={{ fontSize: 12 }}>评估周期范围</Text>
+            <div>
+              <Text strong style={{ fontSize: 14 }}>
+                {start.format('YYYY年MM月DD日')} — {end.format('YYYY年MM月DD日')}
+              </Text>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!selectedMember) {
     return <Empty description="请先选择一个成员" />;
   }
 
   return (
-    <div className="assessments-tab">
+    <div className="assessments-tab" style={{ padding: 20, height: '100%', overflow: 'auto' }}>
       {/* 操作区 */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Text type="secondary">历史评估记录</Text>
-          </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            创建评估
-          </Button>
-        </div>
-      </Card>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Text type="secondary">历史评估记录</Text>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          创建评估
+        </Button>
+      </div>
 
       {/* 评估列表 */}
       <List
@@ -172,7 +295,7 @@ const AssessmentsTab: React.FC = () => {
               <Space>
                 <CheckCircleOutlined style={{ color: '#52c41a' }} />
                 <Text strong>{assessment.period}</Text>
-                <Tag color="blue">平均 {(calculateAverageScore(assessment))} 分</Tag>
+                <Tag color="blue">平均 {calculateAverageScore(assessment)} 分</Tag>
               </Space>
             }
             extra={
@@ -245,12 +368,8 @@ const AssessmentsTab: React.FC = () => {
         width={600}
       >
         <Form form={form} layout="vertical">
-          <Form.Item
-            name="period"
-            label="评估周期"
-            rules={[{ required: true, message: '请选择评估周期' }]}
-          >
-            <Input placeholder="例如：2024-01" />
+          <Form.Item label="评估周期" required>
+            {renderPeriodSelector(createPeriodType, createDate, setCreatePeriodType, setCreateDate)}
           </Form.Item>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -296,10 +415,7 @@ const AssessmentsTab: React.FC = () => {
             </Form.Item>
           </div>
 
-          <Form.Item
-            name="summary"
-            label="评估总结"
-          >
+          <Form.Item name="summary" label="评估总结">
             <TextArea rows={4} placeholder="请输入评估总结..." maxLength={500} showCount />
           </Form.Item>
         </Form>
@@ -319,12 +435,8 @@ const AssessmentsTab: React.FC = () => {
         width={600}
       >
         <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="period"
-            label="评估周期"
-            rules={[{ required: true, message: '请选择评估周期' }]}
-          >
-            <Input placeholder="例如：2024-01" />
+          <Form.Item label="评估周期" required>
+            {renderPeriodSelector(editPeriodType, editDate, setEditPeriodType, setEditDate)}
           </Form.Item>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
